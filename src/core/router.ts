@@ -28,6 +28,7 @@ import {
   setTeleprompterSpeed,
   retake,
   highlight,
+  draftPublish,
 } from "../core/actions.ts";
 
 export type Routed = { tool: string; args: Record<string, unknown>; utterance: string };
@@ -132,6 +133,10 @@ export function routeUtterance(raw: string): Routed {
       .trim();
     return { tool: "studio.highlight", args: { label: label || "the moment that landed" }, ...base };
   }
+  // Editor's inbox: turn the take into a publish package
+  if (/\b(draft|write) (me )?(a )?(title|description|post|caption)\b/.test(t) || /\b(make|build) (me )?(the )?(publish|editor) package\b/.test(t) || /\beditor package\b/.test(t)) {
+    return { tool: "studio.draft_publish", args: {}, ...base };
+  }
   if (/\b(cue|marker|mark (this|that))\b/.test(t)) {
     const label = utterance.replace(/^.*?\b(?:mark|add|drop)\b/i, "").replace(/^(a |the )?(cue|marker)\b/i, "").trim();
     return { tool: "studio.mark_cue", args: { label: label || "highlight" }, ...base };
@@ -217,6 +222,8 @@ export function executeRouted(driver: StudioDriver, routed: Routed): ToolResult 
       return retake(ctx, { reason: a.reason as string | undefined, fromLine: a.fromLine as number | undefined });
     case "studio.highlight":
       return highlight(ctx, { label: String(a.label) });
+    case "studio.draft_publish":
+      return draftPublish(ctx);
     default:
       return getStatus(ctx);
   }
@@ -240,6 +247,7 @@ export const ROUTING_EXAMPLES = [
   ["slower please", "studio.set_teleprompter_speed", { slower: true }],
   ["cut, take it again", "studio.retake", {}],
   ["that was gold, keep it", "studio.highlight", { label: "keep it" }],
+  ["draft me a title and description", "studio.draft_publish", {}],
   ["make me a run sheet for unboxing the new mic, 6 minutes", "studio.suggest_sections", { topic: "unboxing the new mic", targetMinutes: 6 }],
   ["go live on youtube", "studio.start_restream", { platforms: ["YouTube"] }],
   ["stop the stream", "studio.stop_restream", {}],

@@ -22,6 +22,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { StudioDriver } from "./core/studio.ts";
 import { describeLiveDriver } from "./drivers/obs.ts";
+import { buildStudioPackage, packageToMarkdown } from "./core/handoff.ts";
 import { executeRouted, routeUtterance } from "./core/router.ts";
 import { createStudioServer, SERVER_NAME, SERVER_VERSION } from "./mcp/server.ts";
 
@@ -138,6 +139,17 @@ app.get("/api/state", (_req, res) => {
   res.json({ state: driver.snapshot(), journal: driver.journal().slice(-40), mode, driver: driver.driverName, lastOutcome: driver.lastOutcome ?? null });
 });
 
+app.get("/api/package", (_req, res) => {
+  const pkg = buildStudioPackage(driver.snapshot());
+  res.json({ package: pkg, markdown: packageToMarkdown(pkg) });
+});
+
+app.get("/api/package.md", (_req, res) => {
+  const pkg = buildStudioPackage(driver.snapshot());
+  res.setHeader("Content-Type", "text/markdown; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${pkg.filename}"`);
+  res.send(packageToMarkdown(pkg));
+});
 app.post("/api/reset", (_req, res) => {
   res.json({ state: driver.reset(), journal: [] });
 });

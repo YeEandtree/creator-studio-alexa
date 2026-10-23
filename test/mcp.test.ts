@@ -15,10 +15,10 @@ async function connect(mode: "dry_run" | "live" = "live") {
   return { client, driver };
 }
 
-test("MCP handshake lists all 17 studio tools with annotations", async () => {
+test("MCP handshake lists all 18 studio tools with annotations", async () => {
   const { client } = await connect();
   const { tools } = await client.listTools();
-  assert.equal(tools.length, 17);
+  assert.equal(tools.length, 18);
   const names = tools.map((t) => t.name).sort();
   assert.ok(names.includes("studio.get_status"));
   assert.ok(names.includes("studio.mark_cue"));

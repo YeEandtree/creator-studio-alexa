@@ -73,6 +73,7 @@ const ROLE_OF_TOOL = {
   "studio.start_recording": ["director", "Director"],
   "studio.stop_recording": ["director", "Director"],
   "studio.highlight": ["director", "Director"],
+  "studio.draft_publish": ["airtable", "Editor's inbox"],
 };
 
 function renderCrew(state) {
@@ -82,6 +83,8 @@ function renderCrew(state) {
   const hl = (state.highlights ?? []).length;
   setText("crew-light", `key ${state.lighting.key}% · ${state.lighting.temperature}`);
   setText("crew-camera", `${cam.shot} · focus ${cam.focus}`);
+  const drafts = state.drafts;
+  setText("crew-airtable", drafts ? `draft: ${drafts.title.slice(0, 34)}…` : "local journal · export ready");
   setText(
     "crew-audio",
     `${au.muted ? "MUTED" : `${au.gainDb > 0 ? "+" : ""}${au.gainDb} dB`} · gate ${au.noiseGate ? "on" : "off"}`,
@@ -322,6 +325,7 @@ const DEMO_SCRIPT = [
   "slower please",
   "cut, take it again",
   "that was gold, and it lands",
+  "draft me a title and description",
   // Publishing, with the safety guard
   "go live on youtube",
   "stop the stream",
@@ -353,7 +357,7 @@ async function runDemo() {
     await new Promise((r) => setTimeout(r, 450));
   }
   await refresh();
-  els.hint.textContent = "Demo finished — type or speak to drive the studio yourself.";
+  els.hint.textContent = "Demo finished — every tool call above is real. Try typing a line yourself.";
 }
 
 if (new URLSearchParams(location.search).has("demo")) {

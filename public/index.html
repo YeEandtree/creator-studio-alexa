@@ -93,6 +93,10 @@
         <span class="crew-role">Director</span>
         <span class="crew-val" id="crew-director">take 1 · 0 retakes</span>
       </div>
+      <div class="crew-row crew-ai" data-role="airtable">
+        <span class="crew-role">Editor's inbox</span>
+        <span class="crew-val" id="crew-airtable">local journal</span>
+      </div>
     </div>
 
     <div class="prompter" id="prompter" aria-live="polite">
@@ -136,6 +140,10 @@
       <button type="submit">Send</button>
     </form>
 
+    <div class="inbox" id="inbox">
+      <a class="inbox-btn" href="/api/package.md" download>⬇ Export editor package (.md)</a>
+      <span class="muted small">title · chapters · retakes · protected moments · prompt for an AI editor</span>
+    </div>
     <div class="chips" id="chips" aria-label="Try these">
       <span class="chip-group">Crew: one voice, five jobs</span>
       <button>give me a close-up</button>
@@ -146,7 +154,8 @@
       <button>next line</button>
       <button>slower please</button>
       <button>cut, take it again</button>
-      <button>that was gold, keep it</button>
+      <button>that was gold, and it lands</button>
+      <button>draft me a title and description</button>
       <span class="chip-group">Take &amp; publish</span>
       <button>do a dry run</button>
       <button>roll a take on the intro scene</button>

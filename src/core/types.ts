@@ -69,6 +69,16 @@ export type StudioState = {
   retakes: { line: number; atSec: number; reason: string }[];
   /** Saved highlight moments (the cue list survives a retake). */
   highlights: { id: string; label: string; atSec: number; scene: SceneId; createdAt: string }[];
+  /**
+   * Titles, tags and captions drafted from what was actually said on the take.
+   * Kept on the state so the "editor's inbox" can show them.
+   */
+  drafts?: {
+    title: string;
+    description: string;
+    hashtags: string[];
+    chapters: { atSec: number; label: string }[];
+  } | null;
   restream: { live: boolean; startedAt: string | null };
   cues: { id: string; label: string; atSec: number; scene: SceneId; createdAt: string }[];
 };

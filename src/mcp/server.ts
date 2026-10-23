@@ -32,6 +32,7 @@ import {
   setTeleprompterSpeed,
   retake,
   highlight,
+  draftPublish,
 } from "../core/actions.ts";
 import { ROUTING_EXAMPLES } from "../core/router.ts";
 import type { StudioDriver } from "../core/studio.ts";
@@ -339,6 +340,18 @@ export function createStudioServer(options: { driver: StudioDriver; mode?: "dry_
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     async (args) => toolResultToMcp(highlight(ctx(), args)),
+  );
+
+  server.registerTool(
+    "studio.draft_publish",
+    {
+      title: "Draft the publish package (post-production)",
+      description:
+        "Composes a paste-ready title, description, chapters, hashtags and an 'AI editor' prompt from what was " +
+        "actually said and marked on the take. No model round-trip — deterministic and fast.",
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    },
+    async () => toolResultToMcp(draftPublish(ctx())),
   );
 
   return server;

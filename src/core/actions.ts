@@ -18,6 +18,7 @@ import {
   guard,
 } from "../core/studio.ts";
 import type { FocusId, RichCard, SceneId, ShotId, StudioAction } from "../core/types.ts";
+import { buildStudioPackage, packageToMarkdown } from "./handoff.ts";
 
 export type ToolResult = {
   ok: boolean;
@@ -510,4 +511,39 @@ export function highlight(ctx: ToolContext, args: { label: string }): ToolResult
       });
     },
   });
+}
+
+/* ------------------------------------------------------------------ *
+ * 17. studio.draft_publish — the post-production person
+ * ------------------------------------------------------------------ */
+export function draftPublish(ctx: ToolContext): ToolResult {
+  const pkg = buildStudioPackage(ctx.driver.getState());
+  ctx.driver.getState().drafts = {
+    title: pkg.title,
+    description: pkg.description,
+    hashtags: pkg.hashtags,
+    chapters: pkg.chapters,
+  };
+  const card: RichCard = {
+    type: "script",
+    title: pkg.title,
+    sections: pkg.chapters.length
+      ? pkg.chapters.map((c) => ({ heading: c.label, atSec: c.atSec, text: "" }))
+      : [],
+  };
+  ctx.driver.apply({
+    tool: "studio.draft_publish",
+    action: "whisper",
+    args: {},
+    mode: "live",
+    summary: `Title + description draft (${pkg.chapters.length} chapters, ${pkg.hashtags.length} tags)`,
+    speech: `Draft ready. Title: ${pkg.title}.`,
+    card,
+    latencyMs: 1,
+  });
+  return {
+    ok: true,
+    speech: `Title and description drafted from what you actually said: ${pkg.title}. ${pkg.hashtags.length} tags and ${pkg.chapters.length} chapters are in the editor package.`,
+    data: { ok: true, package: pkg, markdown: packageToMarkdown(pkg), card },
+  };
 }
