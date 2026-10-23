@@ -21,6 +21,7 @@ import path from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { StudioDriver } from "./core/studio.ts";
+import { describeLiveDriver } from "./drivers/obs.ts";
 import { executeRouted, routeUtterance } from "./core/router.ts";
 import { createStudioServer, SERVER_NAME, SERVER_VERSION } from "./mcp/server.ts";
 
@@ -43,6 +44,10 @@ const PUBLIC_DIR = resolvePublicDir();
 const driver = new StudioDriver();
 const mode = (process.env.STUDIO_MODE as "dry_run" | "live") || "dry_run";
 const port = Number(process.env.PORT ?? 8787);
+
+// Real hardware only when explicitly asked for: STUDIO_MODE=live plus OBS_URL.
+const liveDriver = describeLiveDriver({ obsUrl: process.env.OBS_URL });
+if (liveDriver) driver.useDriver(liveDriver);
 
 const app = express();
 app.use(express.json({ limit: "256kb" }));
@@ -126,11 +131,11 @@ app.delete("/mcp/session", handleSessionStream);
 
 /* ------------------------------- API -------------------------------- */
 app.get("/healthz", (_req, res) => {
-  res.json({ ok: true, name: SERVER_NAME, version: SERVER_VERSION, mode, sessions: sessions.size });
+  res.json({ ok: true, name: SERVER_NAME, version: SERVER_VERSION, mode, driver: driver.driverName, lastOutcome: driver.lastOutcome ?? null, sessions: sessions.size });
 });
 
 app.get("/api/state", (_req, res) => {
-  res.json({ state: driver.snapshot(), journal: driver.journal().slice(-40), mode });
+  res.json({ state: driver.snapshot(), journal: driver.journal().slice(-40), mode, driver: driver.driverName, lastOutcome: driver.lastOutcome ?? null });
 });
 
 app.post("/api/reset", (_req, res) => {

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * CreatorStudio state + safety guard.
  *
  * Design intent: a voice-first studio assistant must be *fast* (Alexa+ wants
@@ -8,6 +8,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import type { LiveDriver } from "../drivers/obs.ts";
 import type {
   ActionLogEntry,
   GuardIssue,
@@ -248,5 +249,48 @@ export class StudioDriver {
 
   getState(): StudioState {
     return this.state;
+  }
+
+  /* ------------------------- hardware driver seam ------------------------ */
+
+  private liveDriver?: LiveDriver;
+  private lastDriverOutcome?: { ok: boolean; skipped: boolean; detail: string; latencyMs: number; at: string };
+
+  /**
+   * Attach a real hardware driver (OBS today, Elgato / Restream next). Only used
+   * when the server runs in `live` mode; dry runs never touch hardware.
+   */
+  useDriver(driver: LiveDriver): void {
+    this.liveDriver = driver;
+  }
+
+  get driverName(): string {
+    return this.liveDriver?.name ?? "simulator";
+  }
+
+  get lastOutcome() {
+    return this.lastDriverOutcome;
+  }
+
+  /**
+   * Fire a driver call. Deliberately NOT awaited before the spoken reply is
+   * produced: the driver enforces its own sub-second timeout, and an
+   * unreachable device resolves as "skipped" rather than an error.
+   */
+  dispatch(kind: "start_recording" | "stop_recording" | "switch_scene", arg?: string): void {
+    const driver = this.liveDriver;
+    if (!driver) return;
+    const run = async () => {
+      const outcome =
+        kind === "start_recording"
+          ? await driver.startRecording()
+          : kind === "stop_recording"
+            ? await driver.stopRecording()
+            : await driver.setScene(arg ?? "main");
+      this.lastDriverOutcome = { ...outcome, at: new Date().toISOString() };
+    };
+    void run().catch((err: unknown) => {
+      this.lastDriverOutcome = { ok: false, skipped: true, detail: String(err), latencyMs: 0, at: new Date().toISOString() };
+    });
   }
 }

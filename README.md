@@ -47,6 +47,7 @@ npm run smoke        # speaks MCP over HTTP against a running server
 | **Simulated Alexa+ experience** | `public/` — voice input (Web Speech API) → intent route → tool call → spoken reply + rich card |
 | Low-latency tool round-trips | every tool is synchronous; measured round-trip is single-digit milliseconds (`npm run smoke`) |
 | Safety on a voice surface | `src/core/studio.ts` `guard()` — destructive actions on a live stream are blocked unless `confirm: true` |
+| **Real hardware, not a mock** | `src/drivers/obs.ts` — OBS Studio over **obs-websocket v5**: `StartRecord`, `StopRecord`, `SetCurrentProgramScene`, with a hard per-call timeout so a frozen OBS can never break the latency budget |
 
 ### The tools
 
@@ -78,10 +79,29 @@ Plus the MCP **prompt** `creatorstudio.plan_utterance`, a few-shot router any ho
                     │  spoken reply + card    └──────────────┬────────────────┘
                     ▼                                       │ guard → mutate → journal
               rich responses                          ┌───────▼────────┐
-                                                      │ StudioDriver   │  OBS / Elgato / Restream
-                                                      │ state machine  │  (mock today, driver
-                                                      └────────────────┘   interface for real gear)
+                                                      │ StudioDriver   │──► OBS Studio (obs-websocket v5)
+                                                      │ state machine  │    StartRecord / StopRecord /
+                                                      └────────────────┘    SetCurrentProgramScene
 ```
+
+### Real OBS control
+
+OBS Studio ships a WebSocket server (Tools → WebSocket Server Settings → Enable, port 4455).
+Point CreatorStudio at it and voice commands reach real hardware:
+
+```bash
+STUDIO_MODE=live OBS_URL=ws://127.0.0.1:4455 OBS_PASSWORD=yourpass npm run dev
+```
+
+* "roll a take on the intro scene" issues `StartRecord` **and** `SetCurrentProgramScene(Intro)`.
+* Driver calls are **dispatched, not awaited** — the spoken reply returns in milliseconds and the
+  driver enforces its own timeout (`OBS_TIMEOUT_MS`, default 400 ms), so a frozen OBS can never
+  break the Alexa+ latency budget.
+* If OBS is unreachable the outcome is logged as `skipped` (`GET /healthz` → `lastOutcome`) and the
+  state machine stays consistent.
+* No OBS on the demo machine? `npm run obs:stub` starts a fake obs-websocket v5 endpoint
+  (`scripts/fake-obs.mjs`). Verified end to end: stub log shows `StartRecord`,
+  `SetCurrentProgramScene`, `StopRecord`, and `/healthz` reports `"StopRecord ok", "skipped":false`.
 
 * **`src/core/`** — pure domain logic (state, guard, tool implementations, intent router). No I/O, so all of it
   is unit tested.
@@ -99,6 +119,9 @@ Plus the MCP **prompt** `creatorstudio.plan_utterance`, a few-shot router any ho
 | Env var | Default | Meaning |
 | --- | --- | --- |
 | `PORT` | `8787` | HTTP port |
+| `OBS_URL` | unset | e.g. `ws://127.0.0.1:4455` — enables the real OBS driver |
+| `OBS_PASSWORD` | unset | obs-websocket password |
+| `OBS_TIMEOUT_MS` | `400` | hard per-call timeout for OBS |
 | `STUDIO_MODE` | `dry_run` | `dry_run` or `live` |
 | `PUBLIC_DIR` | auto | override the static UI directory |
 | `ALLOW_ORIGIN` | `*` | CORS origin for the simulator / MCP hosts |
@@ -125,15 +148,17 @@ Plus the MCP **prompt** `creatorstudio.plan_utterance`, a few-shot router any ho
 ## Tests
 
 ```
-test/studio.test.ts   state machine, guard rules, every tool, the intent router   (13)
-test/mcp.test.ts      real MCP handshake over InMemoryTransport, schemas, prompts (5)
+test/studio.test.ts   state machine, guard rules, every tool, the intent router    (13)
+test/mcp.test.ts      real MCP handshake over InMemoryTransport, schemas, prompts  (5)
+test/driver.test.ts   OBS dispatch, dry-run isolation, frozen-device latency proof (4)
 scripts/mcp-smoke.mjs real Streamable HTTP session with the official SDK client
+scripts/fake-obs.mjs  fake obs-websocket v5 server for offline hardware checks
 ```
 
 ## What I would build next
 
-1. Real drivers: OBS WebSocket, Elgato Key Light HTTP API, Restream/YouTube — the `StudioDriver` interface is
-   already the seam.
+1. More drivers behind the same `LiveDriver` seam: Elgato Key Light HTTP API, Restream/YouTube,
+   Blackmagic ATEM — lighting is the one command that still only lives in our state machine.
 2. Account linking so one Alexa+ install controls several studios.
 3. Latency-aware batching: two spoken steps ("intro, warm light") in a single tool call.
 

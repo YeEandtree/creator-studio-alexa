@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Domain layer for every MCP tool. Pure functions over (driver, args) so the
  * MCP server, the HTTP API for the simulator, and the unit tests all share one
  * implementation — no duplicated business rules.
@@ -155,6 +155,9 @@ export function startRecording(
       };
       s.scene = scene;
       s.lighting.key = SCENE_LIGHTS[scene];
+      // Real hardware (OBS) rolls asynchronously — the reply never waits on it.
+      d.dispatch("start_recording");
+      d.dispatch("switch_scene", scene);
     },
   });
 }
@@ -182,6 +185,7 @@ export function stopRecording(
       s.recording.elapsedSec = 0;
       s.recording.startedAt = null;
       s.recording.take += 1;
+      d.dispatch("stop_recording");
     },
   });
 }
@@ -202,6 +206,7 @@ export function switchScene(ctx: ToolContext, args: { scene: SceneId; preserveLi
       const s = d.getState();
       s.scene = scene;
       if (!args.preserveLighting) s.lighting.key = key;
+      d.dispatch("switch_scene", scene);
     },
   });
 }

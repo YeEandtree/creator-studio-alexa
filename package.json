@@ -17,18 +17,21 @@
     "dev": "node --watch src/index.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test --test-isolation=none test/*.test.ts",
-    "smoke": "node scripts/mcp-smoke.mjs"
+    "smoke": "node scripts/mcp-smoke.mjs",
+    "obs:stub": "node scripts/fake-obs.mjs 4455"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.5",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "express": "^4.22.3",
     "hono": "^4.13.13",
+    "obs-websocket-js": "^5.0.8",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/express": "^4.17.25",
     "@types/node": "^22.10.5",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "ws": "^8.22.0"
   }
 }
