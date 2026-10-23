@@ -83,6 +83,7 @@ function renderCrew(state) {
   const hl = (state.highlights ?? []).length;
   setText("crew-light", `key ${state.lighting.key}% · ${state.lighting.temperature}`);
   setText("crew-camera", `${cam.shot} · focus ${cam.focus}`);
+  setText("stage-shot", `${cam.shot.toUpperCase()} · FOCUS ${cam.focus.toUpperCase()}`);
   const drafts = state.drafts;
   setText("crew-airtable", drafts ? `draft: ${drafts.title.slice(0, 34)}…` : "local journal · export ready");
   setText(
@@ -144,14 +145,16 @@ function escapeHtml(s) {
 }
 
 function renderCard(routed, result) {
-  els.cardTool.textContent = `${routed.tool}(${Object.keys(routed.args).length ? JSON.stringify(routed.args) : ""})`;
+  const roleTag = ROLE_OF_TOOL[routed.tool];
+  els.cardTool.innerHTML = `<span class="card-call"><span class="arrow">▸</span> hear “${escapeHtml(routed.utterance)}”<span class="arrow">→</span> call <b>${escapeHtml(routed.tool)}</b>${roleTag ? `<span class="role-tag">${roleTag[1]}</span>` : ""}</span>`;
   els.cardSpeech.textContent = result.speech;
   els.cardSpeech.classList.toggle("denied", !result.ok);
   els.card.classList.remove("flash");
   void els.card.offsetWidth;
   els.card.classList.add("flash");
 
-  const card = result.data?.card;
+  // keep these in scope for renderCard's template above
+const card = result.data?.card;
   let html = "";
   if (card?.type === "status") {
     html = card.rows.map((r) => `<div class="row"><span>${escapeHtml(r.label)}</span><b>${escapeHtml(r.value)}</b></div>`).join("");

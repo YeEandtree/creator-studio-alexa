@@ -4,17 +4,24 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>CreatorStudio — Alexa+ simulator</title>
+<meta name="color-scheme" content="dark" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/styles.css" />
 <link rel="stylesheet" href="/crew.css" />
+<link rel="stylesheet" href="/polish.css" />
+<link rel="stylesheet" href="/polish2.css" />
 </head>
 <body>
 <div class="aurora" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
 <header class="topbar">
   <div class="brand">
-    <div class="logo" aria-hidden="true">◉</div>
+    <div class="logo" aria-hidden="true"><span>◉</span></div>
     <div>
       <h1>CreatorStudio</h1>
-      <p class="tagline">Hands-free voice control for a one-person studio · Alexa+ simulator</p>
+      <p class="tagline">One voice. Five jobs. Alexa+ MCP add-on.</p>
     </div>
   </div>
   <div class="topbar-right">
@@ -34,6 +41,9 @@
 
     <div class="scene-stage" id="scene-stage" data-scene="main">
       <div class="key-light" id="key-light"></div>
+      <div class="stage-frame" aria-hidden="true"></div>
+      <div class="stage-grid" aria-hidden="true"></div>
+      <div class="stage-shot" id="stage-shot">MEDIUM · FOCUS FACE</div>
       <div class="stage-content">
         <div class="stage-scene" id="stage-scene">MAIN</div>
         <div class="stage-meta">
@@ -130,7 +140,7 @@
     <p class="hint" id="hint">Hold the mic to talk, or type below. Try: “do a dry run”.</p>
 
     <div class="alexa-card" id="alexa-card" aria-live="polite">
-      <div class="card-tool" id="card-tool">studio.get_status</div>
+      <div class="card-tool" id="card-tool"><span class="card-call"><span class="arrow">▸</span> microphone live <span class="arrow">→</span> call <b>studio.get_status</b></span></div>
       <div class="card-speech" id="card-speech">Studio is idle on the main scene, key light at 62 percent.</div>
       <div class="card-body" id="card-body"></div>
     </div>

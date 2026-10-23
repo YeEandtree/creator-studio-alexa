@@ -1,0 +1,40 @@
+/* Layout + stage fixes layered on top of polish.css. */
+.layout {
+  grid-template-columns: minmax(320px, 0.92fr) minmax(360px, 1.16fr) minmax(300px, 0.92fr);
+  align-items: stretch;
+}
+@media (max-width: 1240px) {
+  .layout { grid-template-columns: 1fr 1fr; }
+  .panel.wire { grid-column: 1 / -1; }
+}
+@media (max-width: 820px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+/* the stage: shot label on its own row, scene never collides with it */
+.scene-stage { aspect-ratio: 16 / 10; }
+.stage-content { padding: 34px 16px 14px; }
+.stage-shot {
+  position: absolute; left: 18px; top: 14px;
+  font-size: 9.5px; letter-spacing: 0.16em; color: rgba(255, 255, 255, 0.5);
+}
+.stage-scene { font-size: 22px; letter-spacing: 0.30em; }
+.stage-meta { padding: 0 16px 12px; position: absolute; left: 0; right: 0; bottom: 0; }
+
+/* crew rows: value gets room, long drafts truncate instead of wrapping weirdly */
+.crew-row { grid-template-columns: 118px minmax(0, 1fr); }
+.crew-val { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* the lat pill never collapses to "— ms" */
+#latency-pill { min-width: 190px; text-align: center; font-family: var(--font-mono); font-size: 11px; }
+
+/* inline tool-call echo inside the reply card */
+.card-call {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: 4px 0 10px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3);
+}
+.card-call .arrow { color: var(--accent-a); }
+.card-call .role-tag {
+  font-size: 9px; letter-spacing: 0.12em; padding: 1px 7px; border-radius: 999px;
+  border: 1px solid var(--stroke); color: var(--ink-3); font-family: var(--font-ui);
+}
