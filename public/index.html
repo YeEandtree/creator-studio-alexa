@@ -1,10 +1,14 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" translate="no" class="notranslate">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>CreatorStudio — Alexa+ simulator</title>
+<style>html,body{margin:0;padding:0;overflow:hidden;height:100%;}body{display:flex;flex-direction:column;}</style>
 <meta name="color-scheme" content="dark" />
+<meta http-equiv="Content-Language" content="en" />
+<meta name="google" content="notranslate" />
+<meta name="robots" content="notranslate" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -31,6 +35,8 @@
   </div>
 </header>
 
+<div class="voice-strip" id="voice-strip" hidden><span class="vs-badge">voice</span><span class="vs-bars"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="vs-text" id="vs-text">waiting for the creator</span></div>
+<div class="caption-bar" id="caption-bar"><span class="cap-step" id="cap-step">CreatorStudio</span><span class="cap-text" id="cap-text">One voice, five jobs.</span></div>
 <main class="layout">
   <!-- ============ Left: what the creator sees ============ -->
   <section class="panel studio" aria-label="Studio state">
@@ -134,6 +140,8 @@
     </div>
 
     <div class="alexa-orb" id="orb" data-state="idle">
+  <div class="heard-bubble" id="heard"><span class="hb-label">HEARD</span><span id="heard-text"></span></div>
+  <div class="orb-level" aria-hidden="true"></div>
       <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
       <button id="mic-btn" aria-label="Hold to talk (push to talk)">🎙</button>
     </div>
@@ -191,5 +199,7 @@
 </main>
 
 <script type="module" src="/app.js"></script>
+<script type="module" src="/rec.js"></script>
+<script type="module" src="/voice.js"></script>
 </body>
 </html>

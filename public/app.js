@@ -223,11 +223,18 @@ let holding = false;
 if (SR) {
   recognition = new SR();
   recognition.interimResults = true;
-  recognition.lang = navigator.language.startsWith("zh") ? "zh-CN" : "en-US";
+  recognition.lang = "en-US"; // the demo is English-only; a zh locale would split words badly
   recognition.onresult = (e) => {
     const transcript = Array.from(e.results).map((r) => r[0].transcript).join(" ");
     els.input.value = transcript;
-    els.hint.textContent = transcript;
+    els.hint.textContent = `hearing: ${transcript}`;
+    // Show what the microphone actually caught, live.
+    const bubble = document.getElementById("heard");
+    const text = document.getElementById("heard-text");
+    if (bubble && text) {
+      text.textContent = transcript || "…";
+      bubble.classList.add("show");
+    }
   };
   recognition.onend = () => {
     els.orb.dataset.state = "idle";
@@ -236,6 +243,7 @@ if (SR) {
       els.input.value = "";
       send(spoken);
     }
+    setTimeout(() => document.getElementById("heard")?.classList.remove("show"), 1200);
   };
   recognition.onerror = (e) => {
     els.orb.dataset.state = "idle";
@@ -249,11 +257,13 @@ function startListening() {
   if (!recognition || holding) return;
   holding = true;
   els.orb.dataset.state = "listening";
-  els.hint.textContent = "Listening…";
+  els.micBtn.classList.add("listening");
+  els.hint.textContent = "Listening… speak now";
   try { recognition.start(); } catch { /* already started */ }
 }
 function stopListening() {
   holding = false;
+  els.micBtn.classList.remove("listening");
   try { recognition?.stop(); } catch { /* noop */ }
 }
 
@@ -268,6 +278,8 @@ els.micBtn.addEventListener("click", () => {
 function speak(text) {
   if (!("speechSynthesis" in window)) return;
   const u = new SpeechSynthesisUtterance(text);
+  u.lang = "en-US";
+  u.voice = speechSynthesis.getVoices().find((v) => /en-US|en_GB|en-GB/.test(v.lang)) ?? null;
   u.rate = 1.04;
   u.pitch = 1;
   speechSynthesis.cancel();

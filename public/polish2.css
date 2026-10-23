@@ -38,3 +38,154 @@
   font-size: 9px; letter-spacing: 0.12em; padding: 1px 7px; border-radius: 999px;
   border: 1px solid var(--stroke); color: var(--ink-3); font-family: var(--font-ui);
 }
+
+/* 1080p video framing: keep the tool-call meta on one line */
+@media (max-width: 1560px) {
+  .journal li.call .top { flex-wrap: nowrap; align-items: baseline; gap: 6px; }
+  .journal li.call .tool { font-size: 10.5px; }
+  .journal li.call .role { display: none; }
+  .journal li.call .lat { font-size: 10px; white-space: nowrap; margin-left: auto; }
+  .prompter-head span:first-child { white-space: nowrap; }
+}
+
+/* ---------- final: never auto-translate, always English UI ---------- */
+html.notranslate, html.notranslate body { -webkit-user-modify: read-write-plaintext-only; }
+html.notranslate body { font-family: var(--font-ui) !important; }
+/* Chrome/Edge's built-in translator marks translated nodes; hide its toolbar affordance */
+.skiptranslate, #google_translate_element { display: none !important; }
+body { top: 0 !important; }
+
+/* ---------- fixed-stage: the whole app always fits one 1600x1000 frame ------- */
+body { height: 100vh; overflow: hidden; }
+.topbar { flex: 0 0 auto; padding: 14px 28px 8px; }
+.layout {
+  flex: 1 1 auto; min-height: 0; overflow: hidden;
+  padding: 8px 28px 16px; gap: 16px;
+  grid-template-columns: minmax(300px, 0.9fr) minmax(340px, 1.12fr) minmax(280px, 0.9fr);
+}
+.panel { overflow: hidden; padding: 14px; }
+.panel.studio { display: flex; flex-direction: column; }
+.panel.talk { display: flex; flex-direction: column; }
+.panel.wire { display: flex; flex-direction: column; }
+.scene-stage { aspect-ratio: auto; flex: 0 0 auto; height: 190px; }
+.meters { margin-top: 10px; gap: 7px; }
+.scenes { margin-top: 10px; }
+.scenes button { padding: 8px 4px; }
+.crew { margin-top: 10px; padding: 8px; }
+.crew-row { padding: 4px 8px; }
+.prompter { margin-top: 8px; padding: 8px 10px 10px; }
+.prompter-line { font-size: 14px; min-height: 34px; }
+.cues { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.cue-list { overflow: auto; }
+
+.alexa-orb { width: 96px; height: 96px; margin: 0 auto; }
+#mic-btn { width: 58px; height: 58px; font-size: 22px; }
+.hint { margin: 6px 0 8px; font-size: 12px; }
+.alexa-card { min-height: 108px; padding: 11px 13px; }
+.card-speech { font-size: 15px; margin: 6px 0 8px; }
+.composer { margin-top: 10px; }
+.inbox { margin-top: 8px; padding: 8px 10px; }
+.chips { margin-top: 8px; gap: 5px; flex: 1 1 auto; min-height: 0; align-content: flex-start; overflow: auto; }
+.chips button { padding: 5px 10px; font-size: 11px; }
+.journal { flex: 1 1 auto; min-height: 0; overflow: auto; }
+.wire-foot { padding-top: 8px; }
+
+/* ---------- caption bar for the screen recording ---------- */
+.caption-bar {
+  display: flex; align-items: center; gap: 14px;
+  margin: 0 28px 6px; padding: 10px 18px; border-radius: 14px;
+  background: linear-gradient(90deg, rgba(53,212,245,0.16), rgba(139,107,255,0.10) 60%, transparent);
+  border: 1px solid rgba(53,212,245,0.30);
+  box-shadow: 0 18px 40px -30px rgba(53,212,245,0.9);
+  transition: border-color .3s ease, background .3s ease;
+}
+.cap-step {
+  flex: 0 0 auto; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--accent-a);
+  padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(53,212,245,0.45);
+}
+.cap-text { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
+.caption-bar.flash { border-color: rgba(53,212,245,0.85); background: linear-gradient(90deg, rgba(53,212,245,0.30), rgba(139,107,255,0.16) 60%, transparent); }
+
+/* caption bar sits between the header and the grid, so the grid keeps its height */
+body { display: flex; flex-direction: column; }
+.caption-bar { flex: 0 0 auto; margin: 0 28px 4px; padding: 8px 16px; }
+.cap-text { font-size: 15px; }
+.layout { flex: 1 1 auto; }
+
+/* ---------- hard reset: text that overflows is clipped, never overlapped -------- */
+.alexa-card { display: flex; flex-direction: column; overflow: hidden; }
+.alexa-card .card-body { flex: 0 1 auto; overflow: auto; }
+.card-tool { flex: 0 0 auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-tool .card-call { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; display: inline-block; }
+.card-speech {
+  flex: 0 0 auto;
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+  overflow: hidden; white-space: normal; word-break: break-word;
+}
+html body .panel * { max-width: 100%; }
+html body .panel { min-width: 0; }
+
+/* the whole page is a fixed 100% stage; if the window is short we scroll inside panels only */
+html, body { height: 100% !important; overflow: hidden !important; }
+html body .layout { min-height: 0; }
+
+/* zoom-resilient typography: use a scale that keeps everything on one screen */
+@media (max-width: 1200px) {
+  .caption-bar { margin: 0 14px 4px; }
+  .layout { padding: 6px 14px 10px; gap: 10px; grid-template-columns: minmax(260px, 0.9fr) minmax(300px, 1.1fr) minmax(240px, 0.9fr); }
+  .panel { padding: 10px; }
+  .card-speech { font-size: 13.5px; }
+  .cap-text { font-size: 13px; }
+  .crew-row { grid-template-columns: 96px minmax(0, 1fr); font-size: 11px; }
+  .chips button { font-size: 10.5px; padding: 4px 8px; }
+  .scene-stage { height: 150px; }
+}
+
+/* ---------- voice mode: the orb is the star, and it tells you when it hears you ---- */
+#mic-btn.listening, .alexa-orb[data-state="listening"] #mic-btn {
+  box-shadow: 0 0 0 6px rgba(62, 228, 155, 0.35), 0 0 70px -10px rgba(62, 228, 155, 0.9) !important;
+  transform: scale(1.08);
+}
+.orb-level {
+  position: absolute; inset: -10px; border-radius: 50%;
+  border: 2px solid rgba(62, 228, 155, 0.0);
+  transition: border-color .12s linear, transform .12s linear;
+}
+.alexa-orb[data-state="listening"] .orb-level {
+  border-color: rgba(62, 228, 155, 0.85);
+}
+.heard-bubble {
+  position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%);
+  min-width: 200px; max-width: 520px;
+  padding: 10px 16px; border-radius: 14px;
+  background: rgba(8, 14, 22, 0.94); border: 1px solid rgba(62, 228, 155, 0.6);
+  color: #eaf7f1; font-size: 16px; font-weight: 600; line-height: 1.35;
+  box-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.9);
+  opacity: 0; pointer-events: none; transition: opacity .18s ease;
+}
+.heard-bubble.show { opacity: 1; }
+.heard-bubble .hb-label {
+  display: block; font-size: 9.5px; letter-spacing: 0.18em; color: var(--good); margin-bottom: 4px;
+}
+
+/* ---------- voice demonstration mode (?voice=1) ---------- */
+.voice-strip {
+  flex: 0 0 auto; margin: 0 28px 6px; padding: 10px 16px; border-radius: 14px;
+  display: flex; align-items: center; gap: 14px;
+  background: linear-gradient(90deg, rgba(62,228,155,0.16), rgba(53,212,245,0.08) 55%, transparent);
+  border: 1px solid rgba(62,228,155,0.35);
+}
+.voice-strip .vs-badge {
+  font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--good); padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(62,228,155,.5);
+}
+.voice-strip .vs-bars { display: flex; gap: 3px; align-items: flex-end; height: 22px; }
+.voice-strip .vs-bars i { width: 3px; border-radius: 2px; background: var(--good); height: 6px; opacity: .5; }
+.voice-strip.active .vs-bars i { animation: vb 0.9s ease-in-out infinite; opacity: 1; }
+.voice-strip .vs-bars i:nth-child(2n) { animation-delay: .12s; }
+.voice-strip .vs-bars i:nth-child(3n) { animation-delay: .26s; }
+.voice-strip .vs-bars i:nth-child(5n) { animation-delay: .4s; }
+@keyframes vb { 0%,100% { height: 5px } 50% { height: 20px } }
+.voice-strip .vs-text { font-size: 14px; color: var(--ink-2); }
+.voice-strip .vs-text b { color: var(--ink); font-weight: 600; }

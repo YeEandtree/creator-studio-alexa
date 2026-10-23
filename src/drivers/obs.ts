@@ -37,7 +37,7 @@ export type LiveDriver = {
 const OBS_SCENE_NAME: Record<string, string> = {
   intro: "Intro",
   main: "Main",
-  broll: "B-roll",
+  broll: "Broll",
   outro: "Outro",
 };
 
@@ -66,7 +66,7 @@ export class ObsDriver implements LiveDriver {
   private readonly budgetMs: number;
 
   constructor(opts?: { url?: string; password?: string; budgetMs?: number }) {
-    this.url = opts?.url ?? process.env.OBS_URL ?? "ws://127.0.0.1:4455";
+    this.url = opts?.url ?? process.env.OBS_URL ?? "ws://127.0.0.1:4456";
     this.password = opts?.password ?? process.env.OBS_PASSWORD ?? "";
     this.budgetMs = opts?.budgetMs ?? Number(process.env.OBS_TIMEOUT_MS ?? 400);
   }

@@ -166,6 +166,8 @@ app.post("/api/command", (req, res) => {
 
 /* ---------------------------- static UI ----------------------------- */
 app.use(express.static(PUBLIC_DIR, { extensions: ["html"] }));
+app.get("/rec", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
+app.get("/voice", (_req, res) => res.sendFile(path.join(PUBLIC_DIR, "index.html")));
 
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error("[http] unhandled", err);
