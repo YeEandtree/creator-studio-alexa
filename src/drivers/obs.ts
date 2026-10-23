@@ -30,6 +30,8 @@ export type LiveDriver = {
   setScene(scene: string): Promise<DriverOutcome>;
   /** Sent asynchronously (fire and forget) so it never delays a reply. */
   setLighting?(key: number, temperature: string): Promise<DriverOutcome>;
+  /** Optional camera control (PTZ / Elgato Facecam / Cam Link scene presets). */
+  setCamera?(shot: string, focus: string): Promise<DriverOutcome>;
 };
 
 const OBS_SCENE_NAME: Record<string, string> = {
@@ -113,6 +115,18 @@ export class ObsDriver implements LiveDriver {
   setLighting() {
     // OBS has no lighting API; Elgato Key Light is a separate HTTP call (Phase 2).
     return Promise.resolve({ ok: true, skipped: true, detail: "lighting not wired to OBS", latencyMs: 0 });
+  }
+
+  /**
+   * Camera framing maps onto OBS scene presets ("Camera Wide" / "Camera Close"),
+   * so a spoken "closer" really does cut to the close-up source inside OBS.
+   * Focus belongs to a PTZ / autofocus driver, not OBS, so it is a no-op here.
+   */
+  setCamera(shot: string) {
+    const preset = `Camera ${shot.charAt(0).toUpperCase()}${shot.slice(1)}`;
+    return this.call("SetCurrentProgramScene", () =>
+      this.obs.call("SetCurrentProgramScene", { sceneName: preset }),
+    );
   }
 }
 

@@ -55,23 +55,85 @@ function renderState(state, journal) {
     ? state.cues.map((c) => `<li><span>${escapeHtml(c.label)}</span><b>${clock(c.atSec)}</b></li>`).join("")
     : `<li class="empty">Say “mark the hook” during a take.</li>`;
 
+  renderCrew(state);
   if (journal) renderJournal(journal);
+}
+
+/** Which "crew member" each tool stands in for. */
+const ROLE_OF_TOOL = {
+  "studio.set_lighting": ["lighting", "Lighting tech"],
+  "studio.switch_scene": ["lighting", "Lighting tech"],
+  "studio.set_camera": ["camera", "Cameraman"],
+  "studio.set_audio": ["audio", "Sound engineer"],
+  "studio.set_microphone": ["audio", "Sound engineer"],
+  "studio.next_line": ["prompter", "Teleprompter"],
+  "studio.set_teleprompter_speed": ["prompter", "Teleprompter"],
+  "studio.suggest_sections": ["prompter", "Teleprompter"],
+  "studio.retake": ["director", "Director"],
+  "studio.start_recording": ["director", "Director"],
+  "studio.stop_recording": ["director", "Director"],
+  "studio.highlight": ["director", "Director"],
+};
+
+function renderCrew(state) {
+  const tp = state.teleprompter;
+  const cam = state.camera ?? { shot: "medium", focus: "face" };
+  const au = state.audio ?? { gainDb: 0, noiseGate: true, muted: false };
+  const hl = (state.highlights ?? []).length;
+  setText("crew-light", `key ${state.lighting.key}% · ${state.lighting.temperature}`);
+  setText("crew-camera", `${cam.shot} · focus ${cam.focus}`);
+  setText(
+    "crew-audio",
+    `${au.muted ? "MUTED" : `${au.gainDb > 0 ? "+" : ""}${au.gainDb} dB`} · gate ${au.noiseGate ? "on" : "off"}`,
+  );
+  setText("crew-prompter", `line ${tp.line}/${tp.lines.length} · ${tp.speedWpm} wpm`);
+  setText(
+    "crew-director",
+    `take ${state.recording.take} · ${state.retakes.length} retake${state.retakes.length === 1 ? "" : "s"} · ${hl} kept`,
+  );
+
+  const lineEl = $("prompter-line");
+  const text = tp.lines[tp.line - 1] ?? "—";
+  if (lineEl.textContent !== text) {
+    lineEl.textContent = text;
+    lineEl.classList.remove("changed");
+    void lineEl.offsetWidth;
+    lineEl.classList.add("changed");
+  }
+  setText("prompter-meta", `${tp.topic} · line ${tp.line}/${tp.lines.length}`);
+}
+
+function setText(id, value) {
+  const el = $(id);
+  if (el && el.textContent !== value) el.textContent = value;
 }
 
 function renderJournal(journal) {
   const recent = journal.slice(-14).reverse();
   els.journal.innerHTML = recent.length
     ? recent
-        .map(
-          (e) => `
+        .map((e) => {
+          const role = ROLE_OF_TOOL[e.tool];
+          const badge = role ? `<span class="role">${role[1]}</span>` : "";
+          return `
       <li class="call ${e.ok ? "" : "bad"}">
-        <div class="top"><span class="tool">${escapeHtml(e.tool)}</span><span class="lat">${Math.round(e.latencyMs * 100) / 100} ms · ${e.mode}</span></div>
+        <div class="top"><span class="tool">${escapeHtml(e.tool)}${badge}</span><span class="lat">${Math.round(e.latencyMs * 100) / 100} ms · ${e.mode}</span></div>
         <div class="sum">${escapeHtml(e.summary)}</div>
         ${e.detail && Object.keys(e.detail).length ? `<div class="args">${escapeHtml(JSON.stringify(e.detail))}</div>` : ""}
-      </li>`,
-        )
+      </li>`;
+        })
         .join("")
     : `<li class="empty">Tool calls appear here with latency and mode.</li>`;
+}
+
+/** Briefly highlight the crew row that just did the work. */
+function flashRole(toolName) {
+  const role = ROLE_OF_TOOL[toolName];
+  if (!role) return;
+  const row = document.querySelector(`.crew-row[data-role="${role[0]}"]`);
+  if (!row) return;
+  row.classList.add("acting");
+  setTimeout(() => row.classList.remove("acting"), 900);
 }
 
 function escapeHtml(s) {
@@ -135,6 +197,7 @@ async function send(utterance) {
     const data = await res.json();
     renderCard(data.routed, data.result);
     renderState(data.state);
+    flashRole(data.routed.tool);
     const lat = `${data.result.data?.latencyMs ?? "—"} ms tool · ${data.totalMs} ms round-trip`;
     els.latencyPill.textContent = lat;
     await refresh();
@@ -243,12 +306,23 @@ setInterval(refresh, 5000);
 // Used for the 3-minute submission video: plays a short, deterministic script of
 // real tool calls so the recording never depends on speech recognition.
 const DEMO_SCRIPT = [
-  "you are idle, roll when ready",
-  "roll a take on the intro scene",
-  "mark that, the best take of the hook",
+  // Cameraman + focus puller
+  "give me a close-up",
+  "pull focus to my hands",
+  // Lighting tech
   "a bit darker",
-  "switch to b-roll",
   "set white balance warm",
+  // Sound engineer
+  "a bit louder",
+  "kill the fan noise",
+  // Director + prompter: run sheet loads the script
+  "make me a run sheet for unboxing the new mic, 6 minutes",
+  "roll a take on the intro scene",
+  "next line",
+  "slower please",
+  "cut, take it again",
+  "that was gold, and it lands",
+  // Publishing, with the safety guard
   "go live on youtube",
   "stop the stream",
   "that’s a wrap",
@@ -261,9 +335,9 @@ async function runDemo() {
     els.orb.dataset.state = "listening";
     els.input.value = line;
     els.hint.textContent = `“${line}”`;
-    await new Promise((r) => setTimeout(r, 900));
+    await new Promise((r) => setTimeout(r, 650));
     els.orb.dataset.state = "thinking";
-    await new Promise((r) => setTimeout(r, 250));
+    await new Promise((r) => setTimeout(r, 200));
     const res = await fetch("/api/command", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -272,12 +346,13 @@ async function runDemo() {
     const data = await res.json();
     renderCard(data.routed, data.result);
     renderState(data.state);
+    flashRole(data.routed.tool);
     els.latencyPill.textContent = `${data.result.data?.latencyMs ?? "—"} ms tool · ${data.totalMs} ms round-trip`;
-    await refresh();
     els.input.value = "";
     els.orb.dataset.state = "idle";
-    await new Promise((r) => setTimeout(r, 700));
+    await new Promise((r) => setTimeout(r, 450));
   }
+  await refresh();
   els.hint.textContent = "Demo finished — type or speak to drive the studio yourself.";
 }
 

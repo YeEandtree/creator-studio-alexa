@@ -9,7 +9,7 @@
 
 import { isScene, type ToolResult } from "../core/actions.ts";
 import type { StudioDriver } from "../core/studio.ts";
-import type { SceneId } from "../core/types.ts";
+import type { FocusId, SceneId, ShotId } from "../core/types.ts";
 import {
   getStatus,
   markCue,
@@ -22,6 +22,12 @@ import {
   stopRestream,
   suggestSections,
   switchScene,
+  setCamera,
+  setAudio,
+  nextLine,
+  setTeleprompterSpeed,
+  retake,
+  highlight,
 } from "../core/actions.ts";
 
 export type Routed = { tool: string; args: Record<string, unknown>; utterance: string };
@@ -68,6 +74,10 @@ export function routeUtterance(raw: string): Routed {
     return { tool: "studio.start_restream", args: { platforms: named, confirm: /confirm|i understand|yes go live/.test(t) }, ...base };
   }
   if (/\b(stop|end|cut|wrap)\b.*\b(record|tak|roll|shoot)/.test(t) || /\bthat'?s a wrap\b/.test(t) || t === "stop") {
+    // 'cut, take it again' is a retake, not an end of take.
+    if (/\b(take it again|one more take|again from the top|retake)\b/.test(t)) {
+      return { tool: "studio.retake", args: { reason: utterance }, ...base };
+    }
     return { tool: "studio.stop_recording", args: { confirm: /confirm|i understand/.test(t) }, ...base };
   }
   // "am I ready to record", "pre-flight", "check the setup" -> the checklist
@@ -84,6 +94,44 @@ export function routeUtterance(raw: string): Routed {
   }
   if (/\b(mute|mic off|silence)\b/.test(t)) return { tool: "studio.set_microphone", args: { muted: true }, ...base };
   if (/\b(unmute|mic on|can you hear)\b/.test(t)) return { tool: "studio.set_microphone", args: { muted: false }, ...base };
+
+  /* ---- the "crew": camera operator, prompter, director ---- */
+  if (/\b(next line|prompter line|next prompt)\b/.test(t)) return { tool: "studio.next_line", args: {}, ...base };
+  if (/\b(previous line|go back a line|back a line|last line)\b/.test(t)) return { tool: "studio.next_line", args: { back: true }, ...base };
+  if (/\b(repeat|say it again|say that again)\b/.test(t)) return { tool: "studio.next_line", args: { repeat: true }, ...base };
+  if (/\b(retake|take it again|one more take|again from the top|redo this line)\b/.test(t)) {
+    return { tool: "studio.retake", args: { reason: utterance }, ...base };
+  }
+  if (/\b(slower|faster|speed up|slow down|pace|tempo)\b/.test(t)) {
+    const wpm = Number(t.match(/(\d{2,3})\s*(?:wpm|words)/)?.[1]) || undefined;
+    return {
+      tool: "studio.set_teleprompter_speed",
+      args: { wpm, faster: /\bfaster|speed up\b/.test(t), slower: /\bslower|slow down\b/.test(t) },
+      ...base,
+    };
+  }
+  if (/\b(closer|wider|zoom|close-?up|wide shot|framing|frame|reframe)\b/.test(t)) {
+    const shot = /close-?up|closer|zoom in/.test(t) ? "close" : /wide|zoom out|wider/.test(t) ? "wide" : "medium";
+    return { tool: "studio.set_camera", args: { shot, confirm: /confirm/.test(t) }, ...base };
+  }
+  if (/\b(focus|sharp|blurry|soft)\b/.test(t)) {
+    const focus = /hands/.test(t) ? "hands" : /product|object|item|screen/.test(t) ? "product" : "face";
+    return { tool: "studio.set_camera", args: { focus, confirm: /confirm/.test(t) }, ...base };
+  }
+  if (/\b(volume|gain|louder|quieter|noisy|noise|hiss|level|clip(?:ping)?)\b/.test(t)) {
+    const db = Number(t.match(/([+-]?\d{1,2})\s*db/)?.[1]);
+    const adjustDb = Number.isFinite(db) ? db : /louder/.test(t) ? 3 : /quieter|lower/.test(t) ? -3 : undefined;
+    const noiseGate = /noise gate on|kill the (hiss|noise|fan)|gate on/.test(t) ? true : /gate off/.test(t) ? false : undefined;
+    return { tool: "studio.set_audio", args: { adjustDb, noiseGate }, ...base };
+  }
+  if (/\b(gold|highlight|keep (this|that)|that was good|that one's good)\b/.test(t)) {
+    const label = utterance
+      .replace(/^.*?\b(?:gold|highlight|keep)\b/i, "")
+      .replace(/^(this|that|it)\b\s*/i, "")
+      .replace(/^[,.\s]+/, "")
+      .trim();
+    return { tool: "studio.highlight", args: { label: label || "the moment that landed" }, ...base };
+  }
   if (/\b(cue|marker|mark (this|that))\b/.test(t)) {
     const label = utterance.replace(/^.*?\b(?:mark|add|drop)\b/i, "").replace(/^(a |the )?(cue|marker)\b/i, "").trim();
     return { tool: "studio.mark_cue", args: { label: label || "highlight" }, ...base };
@@ -144,6 +192,31 @@ export function executeRouted(driver: StudioDriver, routed: Routed): ToolResult 
       return stopRestream(ctx, { confirm: a.confirm as boolean | undefined });
     case "studio.set_microphone":
       return setMicrophone(ctx, { muted: Boolean(a.muted) });
+    case "studio.set_camera":
+      return setCamera(ctx, {
+        shot: a.shot as ShotId | undefined,
+        focus: a.focus as FocusId | undefined,
+        confirm: a.confirm as boolean | undefined,
+      });
+    case "studio.set_audio":
+      return setAudio(ctx, {
+        gainDb: a.gainDb as number | undefined,
+        adjustDb: a.adjustDb as number | undefined,
+        noiseGate: a.noiseGate as boolean | undefined,
+        muted: a.muted as boolean | undefined,
+      });
+    case "studio.next_line":
+      return nextLine(ctx, { back: a.back as boolean | undefined, repeat: a.repeat as boolean | undefined });
+    case "studio.set_teleprompter_speed":
+      return setTeleprompterSpeed(ctx, {
+        wpm: a.wpm as number | undefined,
+        faster: a.faster as boolean | undefined,
+        slower: a.slower as boolean | undefined,
+      });
+    case "studio.retake":
+      return retake(ctx, { reason: a.reason as string | undefined, fromLine: a.fromLine as number | undefined });
+    case "studio.highlight":
+      return highlight(ctx, { label: String(a.label) });
     default:
       return getStatus(ctx);
   }
@@ -159,6 +232,14 @@ export const ROUTING_EXAMPLES = [
   ["switch to b-roll", "studio.switch_scene", { scene: "broll" }],
   ["a bit darker", "studio.set_lighting", { adjust: -10 }],
   ["key light to 80 percent, warm", "studio.set_lighting", { key: 80, temperature: "warm" }],
+  ["give me a close-up", "studio.set_camera", { shot: "close" }],
+  ["pull focus to my hands", "studio.set_camera", { focus: "hands" }],
+  ["a bit louder, three db", "studio.set_audio", { adjustDb: 3 }],
+  ["kill the fan noise", "studio.set_audio", { noiseGate: true }],
+  ["next line", "studio.next_line", {}],
+  ["slower please", "studio.set_teleprompter_speed", { slower: true }],
+  ["cut, take it again", "studio.retake", {}],
+  ["that was gold, keep it", "studio.highlight", { label: "keep it" }],
   ["make me a run sheet for unboxing the new mic, 6 minutes", "studio.suggest_sections", { topic: "unboxing the new mic", targetMinutes: 6 }],
   ["go live on youtube", "studio.start_restream", { platforms: ["YouTube"] }],
   ["stop the stream", "studio.stop_restream", {}],

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>CreatorStudio — Alexa+ simulator</title>
 <link rel="stylesheet" href="/styles.css" />
+<link rel="stylesheet" href="/crew.css" />
 </head>
 <body>
 <div class="aurora" aria-hidden="true"></div>
@@ -71,6 +72,37 @@
       <button data-scene="outro">Outro</button>
     </div>
 
+    <div class="crew" id="crew" aria-label="Your crew, replaced by one voice">
+      <div class="crew-row" data-role="lighting">
+        <span class="crew-role">Lighting tech</span>
+        <span class="crew-val" id="crew-light">key 62% · neutral</span>
+      </div>
+      <div class="crew-row" data-role="camera">
+        <span class="crew-role">Cameraman</span>
+        <span class="crew-val" id="crew-camera">medium · face</span>
+      </div>
+      <div class="crew-row" data-role="audio">
+        <span class="crew-role">Sound engineer</span>
+        <span class="crew-val" id="crew-audio">0 dB · gate on</span>
+      </div>
+      <div class="crew-row" data-role="prompter">
+        <span class="crew-role">Teleprompter</span>
+        <span class="crew-val" id="crew-prompter">line 1/6 · 140 wpm</span>
+      </div>
+      <div class="crew-row" data-role="director">
+        <span class="crew-role">Director</span>
+        <span class="crew-val" id="crew-director">take 1 · 0 retakes</span>
+      </div>
+    </div>
+
+    <div class="prompter" id="prompter" aria-live="polite">
+      <div class="prompter-head">
+        <span>ON THE GLASS</span>
+        <span id="prompter-meta">line 1/6</span>
+      </div>
+      <p class="prompter-line" id="prompter-line">By the end of this video you'll know exactly how to set up the new mic.</p>
+    </div>
+
     <div class="cues">
       <div class="panel-subhead">
         <h3>Highlight cues</h3>
@@ -105,14 +137,23 @@
     </form>
 
     <div class="chips" id="chips" aria-label="Try these">
-      <button>what’s the studio looking like</button>
+      <span class="chip-group">Crew: one voice, five jobs</span>
+      <button>give me a close-up</button>
+      <button>pull focus to my hands</button>
+      <button>a bit darker</button>
+      <button>a bit louder</button>
+      <button>kill the fan noise</button>
+      <button>next line</button>
+      <button>slower please</button>
+      <button>cut, take it again</button>
+      <button>that was gold, keep it</button>
+      <span class="chip-group">Take &amp; publish</span>
       <button>do a dry run</button>
       <button>roll a take on the intro scene</button>
-      <button>mark that, the best take of the hook</button>
-      <button>a bit darker</button>
       <button>switch to b-roll</button>
-      <button>go live on youtube</button>
       <button>make me a run sheet for unboxing the new mic, 6 minutes</button>
+      <button>go live on youtube</button>
+      <button>stop the stream</button>
       <button>that’s a wrap</button>
     </div>
   </section>

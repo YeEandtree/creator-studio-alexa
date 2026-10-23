@@ -29,13 +29,33 @@ export const SCENE_LIGHTS: Record<SceneId, number> = {
   outro: 68,
 };
 
+/** Default script lines, so "next line" works before a run sheet exists. */
+export const DEFAULT_SCRIPT: { heading: string; text: string }[] = [
+  { heading: "Cold open", text: "By the end of this video you'll know exactly how to set up the new mic." },
+  { heading: "Who this is for", text: "If you record alone and you're tired of getting up to change settings, this is for you." },
+  { heading: "First result", text: "Here's the finished setup running — now let me show you how it got there." },
+  { heading: "The hard part", text: "This is the step where most people quit. Watch the levels here." },
+  { heading: "Payoff", text: "That's the difference. Same voice, half the noise." },
+  { heading: "Call to action", text: "If this saved you a re-shoot, subscribe — next week I do the camera swap." },
+];
+
 export function initialState(now = new Date()): StudioState {
   return {
     updatedAt: now.toISOString(),
     recording: { status: "idle", elapsedSec: 0, take: 1, lastFile: null, startedAt: null },
     scene: "main",
     lighting: { key: SCENE_LIGHTS.main, temperature: "neutral" },
-    audio: { muted: false },
+    audio: { muted: false, gainDb: 0, noiseGate: true },
+    camera: { shot: "medium", focus: "face" },
+    teleprompter: {
+      topic: "untitled take",
+      lines: DEFAULT_SCRIPT.map((s) => s.text),
+      line: 1,
+      visible: true,
+      speedWpm: 140,
+    },
+    retakes: [],
+    highlights: [],
     restream: { live: false, startedAt: null },
     cues: [],
   };
@@ -277,16 +297,16 @@ export class StudioDriver {
    * produced: the driver enforces its own sub-second timeout, and an
    * unreachable device resolves as "skipped" rather than an error.
    */
-  dispatch(kind: "start_recording" | "stop_recording" | "switch_scene", arg?: string): void {
+  dispatch(kind: DispatchKind, arg?: string, arg2?: string): void {
     const driver = this.liveDriver;
     if (!driver) return;
     const run = async () => {
-      const outcome =
-        kind === "start_recording"
-          ? await driver.startRecording()
-          : kind === "stop_recording"
-            ? await driver.stopRecording()
-            : await driver.setScene(arg ?? "main");
+      let outcome;
+      if (kind === "start_recording") outcome = await driver.startRecording();
+      else if (kind === "stop_recording") outcome = await driver.stopRecording();
+      else if (kind === "switch_scene") outcome = await driver.setScene(arg ?? "main");
+      else if (driver.setCamera) outcome = await driver.setCamera(arg ?? "medium", arg2 ?? "face");
+      else outcome = { ok: true, skipped: true, detail: `${kind}: no driver support`, latencyMs: 0 };
       this.lastDriverOutcome = { ...outcome, at: new Date().toISOString() };
     };
     void run().catch((err: unknown) => {
@@ -294,3 +314,5 @@ export class StudioDriver {
     });
   }
 }
+
+export type DispatchKind = "start_recording" | "stop_recording" | "switch_scene" | "camera" | "retake";

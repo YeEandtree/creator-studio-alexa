@@ -26,6 +26,12 @@ import {
   stopRestream,
   suggestSections,
   switchScene,
+  setCamera,
+  setAudio,
+  nextLine,
+  setTeleprompterSpeed,
+  retake,
+  highlight,
 } from "../core/actions.ts";
 import { ROUTING_EXAMPLES } from "../core/router.ts";
 import type { StudioDriver } from "../core/studio.ts";
@@ -239,6 +245,100 @@ export function createStudioServer(options: { driver: StudioDriver; mode?: "dry_
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     },
     async (args) => toolResultToMcp(setMicrophone(ctx(), args)),
+  );
+
+  /* ------------- the "crew" tools: one voice, five roles ------------- */
+
+  server.registerTool(
+    "studio.set_camera",
+    {
+      title: "Move the camera (cameraman + focus puller)",
+      description:
+        "Changes framing (wide / medium / close-up) and focus (face / hands / product) without standing up. " +
+        "On OBS this cuts to the matching 'Camera <Shot>' scene preset.",
+      inputSchema: {
+        shot: z.enum(["wide", "medium", "close"]).optional().describe("Framing, e.g. close for a close-up"),
+        focus: z.enum(["face", "hands", "product"]).optional().describe("Where the focus should sit"),
+        confirm: z.boolean().optional(),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    },
+    async (args) => toolResultToMcp(setCamera(ctx(), args)),
+  );
+
+  server.registerTool(
+    "studio.set_audio",
+    {
+      title: "Adjust audio (noise engineer)",
+      description:
+        "Set mic gain in dB (absolute or relative) and toggle the noise gate — replaces 'can you hear me, is the level right?'",
+      inputSchema: {
+        gainDb: z.number().min(-24).max(12).optional(),
+        adjustDb: z.number().min(-24).max(24).optional().describe("Relative change, e.g. 3 for 'a bit louder'"),
+        noiseGate: z.boolean().optional(),
+        muted: z.boolean().optional(),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    },
+    async (args) => toolResultToMcp(setAudio(ctx(), args)),
+  );
+
+  server.registerTool(
+    "studio.next_line",
+    {
+      title: "Advance the teleprompter",
+      description:
+        "Move the prompter to the next script line (or back / repeat). Returns the line to speak, so a hands-free " +
+        "creator never has to look at a screen.",
+      inputSchema: {
+        back: z.boolean().optional(),
+        repeat: z.boolean().optional().describe("Say the current line again"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async (args) => toolResultToMcp(nextLine(ctx(), args)),
+  );
+
+  server.registerTool(
+    "studio.set_teleprompter_speed",
+    {
+      title: "Pace the teleprompter (director)",
+      description: "Set the prompter scroll speed in words per minute, or nudge it faster / slower.",
+      inputSchema: {
+        wpm: z.number().min(80).max(220).optional(),
+        faster: z.boolean().optional(),
+        slower: z.boolean().optional(),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    },
+    async (args) => toolResultToMcp(setTeleprompterSpeed(ctx(), args)),
+  );
+
+  server.registerTool(
+    "studio.retake",
+    {
+      title: "Cut and take it again",
+      description:
+        "Marks a retake at the current second and jumps the prompter back to that line — 'cut, take it again' " +
+        "without stopping the camera or losing the take.",
+      inputSchema: {
+        reason: z.string().max(120).optional(),
+        fromLine: z.number().min(1).optional(),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async (args) => toolResultToMcp(retake(ctx(), args)),
+  );
+
+  server.registerTool(
+    "studio.highlight",
+    {
+      title: "Save a highlight",
+      description: "Marks a moment that must survive the edit, even if the line gets re-shot.",
+      inputSchema: { label: z.string().min(1).max(80) },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+    },
+    async (args) => toolResultToMcp(highlight(ctx(), args)),
   );
 
   return server;

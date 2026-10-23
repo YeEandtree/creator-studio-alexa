@@ -1,0 +1,69 @@
+/* ---------- crew panel: one voice, five jobs ---------- */
+.crew {
+  display: grid;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(49, 208, 240, 0.18);
+  background: linear-gradient(180deg, rgba(49, 208, 240, 0.07), rgba(124, 92, 255, 0.04));
+}
+.crew-row {
+  display: grid;
+  grid-template-columns: 128px 1fr;
+  gap: 8px;
+  align-items: baseline;
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  transition: background 0.3s ease;
+}
+.crew-row.acting { background: rgba(49, 208, 240, 0.16); box-shadow: inset 2px 0 0 var(--accent); }
+.crew-role { color: var(--muted); font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; }
+.crew-val { color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* ---------- teleprompter ---------- */
+.prompter {
+  margin-top: 12px;
+  padding: 10px 12px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 203, 69, 0.28);
+  background: rgba(255, 203, 69, 0.06);
+}
+.prompter-head {
+  display: flex; justify-content: space-between;
+  font-size: 10.5px; letter-spacing: 0.16em; color: var(--warn); margin-bottom: 6px;
+}
+.prompter-line {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.45;
+  color: #fff6dd;
+  min-height: 46px;
+  transition: opacity 0.2s ease;
+}
+.prompter-line.changed { animation: flash-line 0.5s ease; }
+@keyframes flash-line { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+/* ---------- chip groups ---------- */
+.chip-group {
+  width: 100%;
+  margin: 6px 0 2px;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------- role tab badges on tool calls ---------- */
+.journal li.call .role {
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 1px 7px;
+  margin-left: 6px;
+}

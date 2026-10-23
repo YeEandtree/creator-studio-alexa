@@ -8,6 +8,12 @@
 
 export type SceneId = "intro" | "main" | "broll" | "outro";
 
+/** Camera framing the "camera operator" switches to. */
+export type ShotId = "wide" | "medium" | "close";
+
+/** Where the camera focuses — the "focus puller". */
+export type FocusId = "face" | "hands" | "product";
+
 export type StudioAction =
   | "start_recording"
   | "stop_recording"
@@ -20,7 +26,14 @@ export type StudioAction =
   | "unmute_audio"
   | "start_restream"
   | "stop_restream"
-  | "whisper";
+  | "whisper"
+  | "set_camera"
+  | "set_focus"
+  | "next_line"
+  | "teleprompter_speed"
+  | "set_audio"
+  | "retake"
+  | "highlight_cue";
 
 export type StudioState = {
   /** ISO timestamp of the last state change. */
@@ -40,7 +53,22 @@ export type StudioState = {
     /** Warm / neutral / cool. */
     temperature: "warm" | "neutral" | "cool";
   };
-  audio: { muted: boolean };
+  audio: { muted: boolean; gainDb: number; noiseGate: boolean };
+  /** The "camera operator": framing + focus. */
+  camera: { shot: ShotId; focus: FocusId };
+  /** The "teleprompter": the script line currently on the glass. */
+  teleprompter: {
+    topic: string;
+    lines: string[];
+    /** 1-based index of the line on screen. */
+    line: number;
+    visible: boolean;
+    speedWpm: number;
+  };
+  /** "Cut, take it again" marks, kept so the editor can rebuild the take. */
+  retakes: { line: number; atSec: number; reason: string }[];
+  /** Saved highlight moments (the cue list survives a retake). */
+  highlights: { id: string; label: string; atSec: number; scene: SceneId; createdAt: string }[];
   restream: { live: boolean; startedAt: string | null };
   cues: { id: string; label: string; atSec: number; scene: SceneId; createdAt: string }[];
 };

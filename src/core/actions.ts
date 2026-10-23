@@ -17,7 +17,7 @@ import {
   formatClock,
   guard,
 } from "../core/studio.ts";
-import type { RichCard, SceneId, StudioAction } from "../core/types.ts";
+import type { FocusId, RichCard, SceneId, ShotId, StudioAction } from "../core/types.ts";
 
 export type ToolResult = {
   ok: boolean;
@@ -304,11 +304,17 @@ export function suggestSections(
     card,
     latencyMs: 1,
   });
-  const beats = sheet.sections.map((s) => `${formatClock(s.atSec)} ${s.heading}`).join(", ");
+  // Load the sheet into the teleprompter so the very next thing you say
+  // ("next line") is already on the glass.
+  const s = ctx.driver.getState();
+  s.teleprompter.topic = args.topic;
+  s.teleprompter.lines = sheet.sections.map((sec) => sec.text);
+  s.teleprompter.line = 1;
+  const beats = sheet.sections.map((sec) => `${formatClock(sec.atSec)} ${sec.heading}`).join(", ");
   return {
     ok: true,
-    speech: `Built a ${target} minute run sheet for "${args.topic}" with ${sheet.sections.length} beats: ${beats}.`,
-    data: { ok: true, sheet, card },
+    speech: `Built a ${target} minute run sheet for "${args.topic}" with ${sheet.sections.length} beats, and loaded it on the teleprompter. Say next line when you're ready. Beats: ${beats}.`,
+    data: { ok: true, sheet, card, teleprompter: s.teleprompter },
   };
 }
 
@@ -361,4 +367,147 @@ export function setMicrophone(ctx: ToolContext, args: { muted: boolean }): ToolR
       },
     },
   );
+}
+
+/* ================================================================== *
+ * The "crew" tools: each one replaces a person a solo creator does not
+ * have. Cameraman, focus puller, noise engineer, director, and the
+ * person holding the script.
+ * ================================================================== */
+
+/* ------------------------------------------------------------------ *
+ * 11. studio.set_camera — the cameraman + focus puller
+ * ------------------------------------------------------------------ */
+const SHOT_LABEL: Record<ShotId, string> = { wide: "wide shot", medium: "medium shot", close: "close-up" };
+const FOCUS_LABEL: Record<FocusId, string> = { face: "your face", hands: "your hands", product: "the product" };
+
+export function setCamera(
+  ctx: ToolContext,
+  args: { shot?: ShotId; focus?: FocusId; confirm?: boolean },
+): ToolResult {
+  const s0 = ctx.driver.getState();
+  const shot = args.shot ?? s0.camera.shot;
+  const focus = args.focus ?? s0.camera.focus;
+  return run(ctx, "studio.set_camera", "set_camera", args as Record<string, unknown>, {
+    summary: `Camera ${shot}, focus ${focus}`,
+    speech: () =>
+      args.shot && args.focus
+        ? `Camera on a ${SHOT_LABEL[shot]}, focused on ${FOCUS_LABEL[focus]}.`
+        : args.shot
+          ? `Camera moved to a ${SHOT_LABEL[shot]}, focus held on ${FOCUS_LABEL[focus]}.`
+          : `Focus pulled to ${FOCUS_LABEL[focus]}, ${SHOT_LABEL[shot]} held.`,
+    mutate: (d) => {
+      d.getState().camera = { shot, focus };
+      d.dispatch("camera", shot, focus);
+    },
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * 12. studio.set_audio — the noise engineer / sound department
+ * ------------------------------------------------------------------ */
+export function setAudio(
+  ctx: ToolContext,
+  args: { gainDb?: number; adjustDb?: number; noiseGate?: boolean; muted?: boolean },
+): ToolResult {
+  const s0 = ctx.driver.getState();
+  const gain = Math.max(-24, Math.min(12, Math.round(args.gainDb ?? s0.audio.gainDb + (args.adjustDb ?? 0))));
+  const gate = args.noiseGate ?? s0.audio.noiseGate;
+  return run(ctx, "studio.set_audio", "set_audio", args as Record<string, unknown>, {
+    summary: `Audio ${gain > 0 ? "+" : ""}${gain} dB, noise gate ${gate ? "on" : "off"}`,
+    speech: () => {
+      const parts = [`Mic gain ${gain > 0 ? "plus " : "minus "}${Math.abs(gain)} dB`];
+      parts.push(gate ? "noise gate on" : "noise gate off");
+      if (gain > 8) parts.push("watch out, that is close to clipping");
+      return `${parts.join(", ")}.`;
+    },
+    mutate: (d) => {
+      const s = d.getState();
+      s.audio.gainDb = gain;
+      s.audio.noiseGate = gate;
+      if (args.muted !== undefined) s.audio.muted = args.muted;
+    },
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * 13. studio.next_line — the teleprompter (and the person holding it)
+ * ------------------------------------------------------------------ */
+export function nextLine(ctx: ToolContext, args: { back?: boolean; repeat?: boolean }): ToolResult {
+  const s0 = ctx.driver.getState();
+  const total = s0.teleprompter.lines.length;
+  const from = s0.teleprompter.line;
+  const target = args.repeat ? from : args.back ? Math.max(1, from - 1) : Math.min(total, from + 1);
+  const line = s0.teleprompter.lines[target - 1] ?? "";
+  return run(ctx, "studio.next_line", "next_line", args as Record<string, unknown>, {
+    summary: `Teleprompter line ${target}/${total}`,
+    speech: () =>
+      args.repeat
+        ? `Repeating line ${target}. ${line}`
+        : `Line ${target} of ${total}. ${line}`,
+    mutate: (d) => {
+      d.getState().teleprompter.line = target;
+      d.getState().teleprompter.visible = true;
+    },
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * 14. studio.set_teleprompter_speed — the director's pacing
+ * ------------------------------------------------------------------ */
+export function setTeleprompterSpeed(ctx: ToolContext, args: { wpm?: number; faster?: boolean; slower?: boolean }): ToolResult {
+  const s0 = ctx.driver.getState();
+  const wpm = Math.max(80, Math.min(220, args.wpm ?? s0.teleprompter.speedWpm + (args.faster ? 20 : args.slower ? -20 : 0)));
+  return run(ctx, "studio.set_teleprompter_speed", "teleprompter_speed", args as Record<string, unknown>, {
+    summary: `Prompter ${wpm} wpm`,
+    speech: () => `Teleprompter at ${wpm} words per minute — about ${(wpm / 140).toFixed(2)}x your usual pace.`,
+    mutate: (d) => {
+      d.getState().teleprompter.speedWpm = wpm;
+    },
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * 15. studio.retake — "cut, take it again" from this line
+ * ------------------------------------------------------------------ */
+export function retake(ctx: ToolContext, args: { reason?: string; fromLine?: number }): ToolResult {
+  const s0 = ctx.driver.getState();
+  const line = args.fromLine ?? s0.teleprompter.line;
+  const at = s0.recording.elapsedSec;
+  return run(ctx, "studio.retake", "retake", args as Record<string, unknown>, {
+    summary: `Retake at ${formatClock(at)} from line ${line}`,
+    speech: () =>
+      s0.recording.status === "recording"
+        ? `Marked a retake at ${formatClock(at)}. Keep rolling — the editor will cut back to line ${line}. Prompter is back on that line.`
+        : `Retake noted at ${formatClock(at)} from line ${line}. Nothing is recording, so tell me to roll when you're set.`,
+    mutate: (d) => {
+      const s = d.getState();
+      s.retakes.push({ line, atSec: at, reason: args.reason ?? "unspecified" });
+      s.teleprompter.line = line;
+      d.dispatch("retake", String(line));
+    },
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * 16. studio.highlight — "that one was gold" (survives a retake)
+ * ------------------------------------------------------------------ */
+export function highlight(ctx: ToolContext, args: { label: string }): ToolResult {
+  const s0 = ctx.driver.getState();
+  const at = s0.recording.elapsedSec;
+  const scene = s0.scene;
+  return run(ctx, "studio.highlight", "highlight_cue", args as Record<string, unknown>, {
+    summary: `Highlight "${args.label}" at ${formatClock(at)}`,
+    speech: () => `Saved highlight "${args.label}" at ${formatClock(at)}. It goes straight to your editor, even if you re-shoot.`,
+    mutate: (d) => {
+      const s = d.getState();
+      s.highlights.push({
+        id: `hl-${s.highlights.length + 1}`,
+        label: args.label,
+        atSec: at,
+        scene,
+        createdAt: new Date().toISOString(),
+      });
+    },
+  });
 }
