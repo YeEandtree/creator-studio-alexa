@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+*.log
+captures/
+*.mp4
+.DS_Store

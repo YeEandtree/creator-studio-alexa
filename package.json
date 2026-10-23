@@ -1,0 +1,34 @@
+{
+  "name": "creator-studio-alexa",
+  "version": "1.0.0",
+  "description": "CreatorStudio - a hands-free voice control plane for solo video creators, delivered as an Alexa+ MCP server (Streamable HTTP) plus a simulator web app.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR-USER/creator-studio-alexa.git"
+  },
+  "engines": {
+    "node": ">=22.6"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/src/index.js",
+    "dev": "node --watch src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test --test-isolation=none test/*.test.ts",
+    "smoke": "node scripts/mcp-smoke.mjs"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.5",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "express": "^4.22.3",
+    "hono": "^4.13.13",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.25",
+    "@types/node": "^22.10.5",
+    "typescript": "^5.7.3"
+  }
+}

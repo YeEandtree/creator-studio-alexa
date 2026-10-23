@@ -1,0 +1,20 @@
+# Render blueprint — one-click deploy of the CreatorStudio MCP server + simulator.
+# After deploying, the MCP endpoint is https://<service>.onrender.com/mcp
+#
+# NOTE: pnpm-lock.yaml + .npmrc (node-linker=hoisted) are what make `npm ci`
+# reproduce the exact, working dependency tree on Render.
+services:
+  - type: web
+    name: creator-studio
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: STUDIO_MODE
+        value: dry_run
+      - key: ALLOW_ORIGIN
+        value: "*"
